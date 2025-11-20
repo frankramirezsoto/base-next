@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signUp, signIn } from "@/lib/auth-client";
+import { toast } from "sonner";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -11,41 +12,44 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      toast.error("Passwords do not match");
       return;
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters long");
+      toast.error("Password must be at least 8 characters long");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      await signUp.email({
+      const result = await signUp.email({
         email,
         password,
         name,
       });
-      router.push("/");
+
+      if (result.error) {
+        toast.error(result.error.message || "Failed to create account");
+      } else {
+        toast.success("Account created! Please check your email to verify your account.");
+        // Don't redirect immediately - user needs to verify email
+      }
     } catch (err: any) {
-      setError(err.message || "Failed to create account");
+      toast.error(err.message || "Failed to create account");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleSignup = async () => {
-    setError("");
     setIsLoading(true);
     try {
       await signIn.social({
@@ -53,13 +57,12 @@ export default function SignupPage() {
         callbackURL: "/",
       });
     } catch (err: any) {
-      setError(err.message || "Failed to sign up with Google");
+      toast.error(err.message || "Failed to sign up with Google");
       setIsLoading(false);
     }
   };
 
   const handleAppleSignup = async () => {
-    setError("");
     setIsLoading(true);
     try {
       await signIn.social({
@@ -67,7 +70,7 @@ export default function SignupPage() {
         callbackURL: "/",
       });
     } catch (err: any) {
-      setError(err.message || "Failed to sign up with Apple");
+      toast.error(err.message || "Failed to sign up with Apple");
       setIsLoading(false);
     }
   };
@@ -91,16 +94,6 @@ export default function SignupPage() {
         </div>
 
         <div className="mt-8 space-y-6">
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
-                </div>
-              </div>
-            </div>
-          )}
-
           <form className="space-y-6" onSubmit={handleEmailSignup}>
             <div className="rounded-md shadow-sm space-y-2">
               <div>

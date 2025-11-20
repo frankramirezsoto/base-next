@@ -6,10 +6,17 @@ A secure, production-ready Next.js template with authentication built-in. Perfec
 
 - **Next.js 15** with App Router, TypeScript, and Tailwind CSS
 - **Better Auth** for secure authentication with:
-  - Email/Password authentication
+  - Email/Password authentication with email verification
   - Google OAuth
   - Apple OAuth
 - **Drizzle ORM** with PostgreSQL
+- **Email Verification**:
+  - Required for new signups
+  - Flexible email service integration (Resend, SendGrid, SMTP, etc.)
+  - Beautiful verification email templates
+- **Toast Notifications**:
+  - User-friendly error and success messages
+  - Powered by Sonner
 - **Security Best Practices**:
   - CSRF protection
   - Rate limiting
@@ -18,7 +25,8 @@ A secure, production-ready Next.js template with authentication built-in. Perfec
   - Session management
 - **Pre-built Components**:
   - Responsive navbar with auth state
-  - Login and signup pages
+  - Login and signup pages with toast feedback
+  - Email verification page
   - OAuth integration
 
 ## Prerequisites
@@ -113,6 +121,142 @@ Open [http://localhost:3000](http://localhost:3000) to see your app.
 5. Generate a private key and create a client secret
 6. Copy the Client ID and Client Secret to your `.env.local`
 
+## Email Verification Setup
+
+This template includes email verification for new user signups. Email verification is **enabled by default** and users must verify their email before they can sign in.
+
+### Email Service Integration
+
+The template is designed to work with any email service provider. You need to implement the email sending logic in `src/lib/email/send-email.ts`.
+
+#### Option 1: Resend (Recommended)
+
+[Resend](https://resend.com) is a modern email API that's easy to set up.
+
+1. Install Resend:
+```bash
+npm install resend
+```
+
+2. Get your API key from [Resend Dashboard](https://resend.com/api-keys)
+
+3. Add to `.env.local`:
+```env
+RESEND_API_KEY="your-resend-api-key"
+EMAIL_FROM="onboarding@yourdomain.com"
+```
+
+4. Update `src/lib/email/send-email.ts`:
+```typescript
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function sendEmail({ to, subject, html }: EmailOptions) {
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM!,
+    to,
+    subject,
+    html,
+  });
+}
+```
+
+#### Option 2: SendGrid
+
+1. Install SendGrid:
+```bash
+npm install @sendgrid/mail
+```
+
+2. Get your API key from [SendGrid](https://sendgrid.com)
+
+3. Add to `.env.local`:
+```env
+SENDGRID_API_KEY="your-sendgrid-api-key"
+EMAIL_FROM="noreply@yourdomain.com"
+```
+
+4. Update `src/lib/email/send-email.ts`:
+```typescript
+import sgMail from '@sendgrid/mail';
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+
+export async function sendEmail({ to, subject, html, text }: EmailOptions) {
+  await sgMail.send({
+    from: process.env.EMAIL_FROM!,
+    to,
+    subject,
+    html,
+    text,
+  });
+}
+```
+
+#### Option 3: SMTP (Nodemailer)
+
+Works with any SMTP server (Gmail, Outlook, custom SMTP, etc.)
+
+1. Install Nodemailer:
+```bash
+npm install nodemailer
+npm install --save-dev @types/nodemailer
+```
+
+2. Add to `.env.local`:
+```env
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASSWORD="your-app-password"
+EMAIL_FROM="your-email@gmail.com"
+```
+
+3. Update `src/lib/email/send-email.ts`:
+```typescript
+import nodemailer from 'nodemailer';
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+  },
+});
+
+export async function sendEmail({ to, subject, html, text }: EmailOptions) {
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject,
+    html,
+    text,
+  });
+}
+```
+
+### Development Mode
+
+In development mode (NODE_ENV=development), emails are logged to the console instead of being sent. This allows you to test the signup flow without configuring an email service.
+
+To test email verification in development:
+1. Sign up with an email
+2. Check the console for the verification link
+3. Copy and paste the link into your browser
+
+### Disabling Email Verification (Not Recommended)
+
+If you want to disable email verification for testing:
+
+1. Edit `src/lib/auth.ts`
+2. Change `requireEmailVerification: true` to `requireEmailVerification: false`
+3. Users will be able to sign in immediately after signup
+
+**Note:** This is not recommended for production as it allows users with fake email addresses to create accounts.
+
 ## Project Structure
 
 ```
@@ -121,16 +265,20 @@ src/
 │   ├── api/auth/[...all]/   # Better Auth API routes
 │   ├── login/               # Login page
 │   ├── signup/              # Signup page
-│   ├── layout.tsx           # Root layout with navbar
+│   ├── verify-email/        # Email verification page
+│   ├── products/            # Products page (placeholder)
+│   ├── layout.tsx           # Root layout with navbar and toast provider
 │   └── page.tsx             # Home page
 ├── components/
 │   └── navbar.tsx           # Navbar with auth state
 └── lib/
     ├── auth.ts              # Better Auth server configuration
     ├── auth-client.ts       # Better Auth client hooks
-    └── db/
-        ├── index.ts         # Database connection
-        └── schema.ts        # Database schema
+    ├── db/
+    │   ├── index.ts         # Database connection
+    │   └── schema.ts        # Database schema
+    └── email/
+        └── send-email.ts    # Email service integration
 ```
 
 ## Available Scripts

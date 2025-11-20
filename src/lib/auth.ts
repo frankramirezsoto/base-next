@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import * as schema from "./db/schema";
+import { sendVerificationEmail } from "./email/send-email";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -15,9 +16,12 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false, // Set to true in production with email service
+    requireEmailVerification: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendVerificationEmail(user.email, url);
+    },
   },
   socialProviders: {
     google: {

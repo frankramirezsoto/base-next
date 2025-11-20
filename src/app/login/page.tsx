@@ -4,34 +4,38 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "@/lib/auth-client";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setIsLoading(true);
 
     try {
-      await signIn.email({
+      const result = await signIn.email({
         email,
         password,
       });
-      router.push("/");
+
+      if (result.error) {
+        toast.error(result.error.message || "Invalid email or password");
+      } else {
+        toast.success("Successfully signed in!");
+        router.push("/");
+      }
     } catch (err: any) {
-      setError(err.message || "Invalid email or password");
+      toast.error(err.message || "Invalid email or password");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setError("");
     setIsLoading(true);
     try {
       await signIn.social({
@@ -39,13 +43,12 @@ export default function LoginPage() {
         callbackURL: "/",
       });
     } catch (err: any) {
-      setError(err.message || "Failed to sign in with Google");
+      toast.error(err.message || "Failed to sign in with Google");
       setIsLoading(false);
     }
   };
 
   const handleAppleLogin = async () => {
-    setError("");
     setIsLoading(true);
     try {
       await signIn.social({
@@ -53,7 +56,7 @@ export default function LoginPage() {
         callbackURL: "/",
       });
     } catch (err: any) {
-      setError(err.message || "Failed to sign in with Apple");
+      toast.error(err.message || "Failed to sign in with Apple");
       setIsLoading(false);
     }
   };
@@ -77,16 +80,6 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-8 space-y-6">
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
-                </div>
-              </div>
-            </div>
-          )}
-
           <form className="space-y-6" onSubmit={handleEmailLogin}>
             <div className="rounded-md shadow-sm -space-y-px">
               <div>
