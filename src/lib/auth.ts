@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import * as schema from "./db/schema";
-import { sendVerificationEmail } from "./email/send-email";
+import { sendVerificationEmail, sendPasswordResetEmail } from "./email/send-email";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -21,6 +21,9 @@ export const auth = betterAuth({
     maxPasswordLength: 128,
     sendVerificationEmail: async ({ user, url }) => {
       await sendVerificationEmail(user.email, url);
+    },
+    sendResetPassword: async ({ user, url }) => {
+      await sendPasswordResetEmail(user.email, url);
     },
   },
   socialProviders: {

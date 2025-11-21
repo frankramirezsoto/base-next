@@ -1,16 +1,4 @@
-/**
- * Email Service Integration
- *
- * This file provides a structure for sending emails using any email service provider.
- * You can integrate services like:
- * - Resend (https://resend.com)
- * - SendGrid (https://sendgrid.com)
- * - AWS SES (https://aws.amazon.com/ses/)
- * - Postmark (https://postmarkapp.com)
- * - Nodemailer with any SMTP server
- *
- * Install your preferred email service package and implement the sendEmail function below.
- */
+import nodemailer from "nodemailer";
 
 export interface EmailOptions {
   to: string;
@@ -19,83 +7,36 @@ export interface EmailOptions {
   text?: string;
 }
 
+// Create transporter with SMTP configuration
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+  },
+});
+
 /**
- * Send an email using your preferred email service
- *
- * @example Using Resend:
- * ```
- * import { Resend } from 'resend';
- * const resend = new Resend(process.env.RESEND_API_KEY);
- *
- * export async function sendEmail({ to, subject, html }: EmailOptions) {
- *   await resend.emails.send({
- *     from: process.env.EMAIL_FROM!,
- *     to,
- *     subject,
- *     html,
- *   });
- * }
- * ```
- *
- * @example Using SendGrid:
- * ```
- * import sgMail from '@sendgrid/mail';
- * sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
- *
- * export async function sendEmail({ to, subject, html, text }: EmailOptions) {
- *   await sgMail.send({
- *     from: process.env.EMAIL_FROM!,
- *     to,
- *     subject,
- *     html,
- *     text,
- *   });
- * }
- * ```
- *
- * @example Using Nodemailer:
- * ```
- * import nodemailer from 'nodemailer';
- *
- * const transporter = nodemailer.createTransport({
- *   host: process.env.SMTP_HOST,
- *   port: Number(process.env.SMTP_PORT),
- *   secure: true,
- *   auth: {
- *     user: process.env.SMTP_USER,
- *     pass: process.env.SMTP_PASSWORD,
- *   },
- * });
- *
- * export async function sendEmail({ to, subject, html, text }: EmailOptions) {
- *   await transporter.sendMail({
- *     from: process.env.EMAIL_FROM,
- *     to,
- *     subject,
- *     html,
- *     text,
- *   });
- * }
- * ```
+ * Send an email using SMTP
  */
 export async function sendEmail({ to, subject, html, text }: EmailOptions) {
-  // TODO: Implement your email service integration here
-  // For development/testing, you can log the email instead of sending it
+  try {
+    const info = await transporter.sendMail({
+      from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+      to,
+      subject,
+      html,
+      text: text || subject,
+    });
 
-  if (process.env.NODE_ENV === "development") {
-    console.log("\n📧 Email would be sent:");
-    console.log("To:", to);
-    console.log("Subject:", subject);
-    console.log("HTML:", html);
-    console.log("Text:", text);
-    console.log("\n");
-    return;
+    console.log("Email sent successfully:", info.messageId);
+    return info;
+  } catch (error) {
+    console.error("Error sending email:", error);
+    throw error;
   }
-
-  // In production, throw an error if email service is not configured
-  throw new Error(
-    "Email service not configured. Please implement the sendEmail function in src/lib/email/send-email.ts"
-  );
 }
 
 /**
@@ -142,6 +83,59 @@ Thank you for signing up! Please visit the following link to verify your email a
 ${verificationUrl}
 
 If you didn't create an account, you can safely ignore this email.
+    `,
+  });
+}
+
+/**
+ * Send password reset email to user
+ */
+export async function sendPasswordResetEmail(email: string, resetUrl: string) {
+  await sendEmail({
+    to: email,
+    subject: "Reset your password",
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Reset your password</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #f8f9fa; border-radius: 10px; padding: 30px; margin: 20px 0;">
+            <h1 style="color: #2563eb; margin-top: 0;">Reset Your Password</h1>
+            <p>We received a request to reset your password. Click the button below to create a new password.</p>
+            <div style="margin: 30px 0;">
+              <a href="${resetUrl}"
+                 style="background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                Reset Password
+              </a>
+            </div>
+            <p style="color: #6b7280; font-size: 14px;">
+              If the button doesn't work, copy and paste this link into your browser:<br>
+              <a href="${resetUrl}" style="color: #2563eb; word-break: break-all;">${resetUrl}</a>
+            </p>
+            <p style="color: #dc2626; font-size: 14px; margin-top: 30px;">
+              This link will expire in 1 hour for security reasons.
+            </p>
+            <p style="color: #6b7280; font-size: 14px;">
+              If you didn't request a password reset, you can safely ignore this email. Your password will not be changed.
+            </p>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `
+Reset Your Password
+
+We received a request to reset your password. Please visit the following link to create a new password:
+
+${resetUrl}
+
+This link will expire in 1 hour for security reasons.
+
+If you didn't request a password reset, you can safely ignore this email. Your password will not be changed.
     `,
   });
 }

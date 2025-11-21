@@ -2,15 +2,29 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "@/lib/auth-client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function Navbar() {
   const { data: session, isPending } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
     await signOut();
+    setIsMenuOpen(false);
   };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <nav className="bg-white shadow-lg">
@@ -42,25 +56,55 @@ export default function Navbar() {
                 <div className="h-8 w-20 bg-gray-200 animate-pulse rounded"></div>
               </div>
             ) : session ? (
-              <div className="flex items-center space-x-4">
-                <div className="hidden md:flex items-center space-x-3">
-                  {session.user.image && (
-                    <img
-                      src={session.user.image}
-                      alt={session.user.name || "User"}
-                      className="h-8 w-8 rounded-full"
-                    />
-                  )}
-                  <span className="text-sm font-medium text-gray-700">
-                    {session.user.name || session.user.email}
-                  </span>
-                </div>
+              <div className="relative" ref={menuRef}>
                 <button
-                  onClick={handleSignOut}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="flex items-center space-x-3 focus:outline-none"
                 >
-                  Sign Out
+                  <div className="hidden md:flex items-center space-x-3">
+                    {session.user.image && (
+                      <img
+                        src={session.user.image}
+                        alt={session.user.name || "User"}
+                        className="h-8 w-8 rounded-full"
+                      />
+                    )}
+                    <span className="text-sm font-medium text-gray-700">
+                      {session.user.name || session.user.email}
+                    </span>
+                  </div>
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 </button>
+
+                {isMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200">
+                    <Link
+                      href="/change-password"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Change Password
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center space-x-4">

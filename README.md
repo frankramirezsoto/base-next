@@ -9,11 +9,14 @@ A secure, production-ready Next.js template with authentication built-in. Perfec
   - Email/Password authentication with email verification
   - Google OAuth
   - Apple OAuth
+  - Password reset (forgot password)
+  - Change password for logged-in users
 - **Drizzle ORM** with PostgreSQL
-- **Email Verification**:
-  - Required for new signups
-  - Flexible email service integration (Resend, SendGrid, SMTP, etc.)
-  - Beautiful verification email templates
+- **Email Service Integration**:
+  - SMTP support with Nodemailer (Gmail, Outlook, any SMTP server)
+  - Email verification emails
+  - Password reset emails
+  - Beautiful HTML email templates
 - **Toast Notifications**:
   - User-friendly error and success messages
   - Powered by Sonner
@@ -23,10 +26,14 @@ A secure, production-ready Next.js template with authentication built-in. Perfec
   - Secure password hashing (bcrypt)
   - Secure cookies (HTTP-only, SameSite)
   - Session management
+  - Password reset with expiring tokens
 - **Pre-built Components**:
-  - Responsive navbar with auth state
+  - Responsive navbar with user dropdown menu
   - Login and signup pages with toast feedback
   - Email verification page
+  - Forgot password page
+  - Reset password page
+  - Change password page (for logged-in users)
   - OAuth integration
 
 ## Prerequisites
@@ -263,14 +270,17 @@ If you want to disable email verification for testing:
 src/
 ├── app/
 │   ├── api/auth/[...all]/   # Better Auth API routes
-│   ├── login/               # Login page
+│   ├── login/               # Login page with forgot password link
 │   ├── signup/              # Signup page
 │   ├── verify-email/        # Email verification page
+│   ├── forgot-password/     # Forgot password page
+│   ├── reset-password/      # Reset password page (with token)
+│   ├── change-password/     # Change password page (for logged-in users)
 │   ├── products/            # Products page (placeholder)
 │   ├── layout.tsx           # Root layout with navbar and toast provider
 │   └── page.tsx             # Home page
 ├── components/
-│   └── navbar.tsx           # Navbar with auth state
+│   └── navbar.tsx           # Navbar with user dropdown menu
 └── lib/
     ├── auth.ts              # Better Auth server configuration
     ├── auth-client.ts       # Better Auth client hooks
@@ -278,7 +288,7 @@ src/
     │   ├── index.ts         # Database connection
     │   └── schema.ts        # Database schema
     └── email/
-        └── send-email.ts    # Email service integration
+        └── send-email.ts    # SMTP email service with nodemailer
 ```
 
 ## Available Scripts
